@@ -1,0 +1,17 @@
+{
+  "name": "discord-channel-map",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "setup": "tsx --env-file=.env src/setup.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": { "discord.js": "^14.27.0" },
+  "devDependencies": { "@types/node": "^24.0.0", "tsx": "^4.0.0", "typescript": "~5.9.3" }
+}
