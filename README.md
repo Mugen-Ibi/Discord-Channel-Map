@@ -37,4 +37,69 @@ Botは、PCが停止している間も更新を受け取れるよう、Northflan
 
 ## 開発状況
 
-現在は企画・設計段階です。今後、Botの基本機能、設定方法、Northflankへのデプロイ手順を順次追加します。
+MVPを実装しました。TypeScript + discord.js、単一Guild向け、DB・永続Volume不要です。
+
+## MVPの動作
+
+- カテゴリとチャンネルを現在のDiscord状態から取得し、カテゴリ順・種類別の表示順・位置・同位置のID順を維持します。ユーザーごとのカスタム表示は対象外です。
+- Text 📝 / Voice 🔊 / Forum 💬 / Announcement 📢 を識別します。Stage 🎙️ / Media 🖼️ も表示します。
+- カテゴリなしのチャンネルを先頭に表示します。空カテゴリも表示します。スレッド・Forum内の投稿は対象外です。
+- ChannelCreate / ChannelDelete / ChannelUpdateの最後のイベントから3秒後、`MAP_MESSAGE_ID` の同一メッセージを編集します。他Guildのイベントは無視します。
+- 起動・Gateway再接続・Guild復帰時に再同期します。更新は直列化し、失敗後は30秒後に再試行します。内容が同じなら編集を省略します。
+- 公開案内用として、**Botと @everyone の両方が View Channel を持つチャンネル・カテゴリだけ**を掲載します。ロール限定チャンネルはBotから見えても掲載しません。親カテゴリが非公開で子だけ公開の場合、子は「カテゴリなし」に表示します。ロールの変更・削除でも再評価します。
+
+## クイックスタート
+
+Node.js 24.x と npm を使用します。まず [セットアップ手順](docs/setup.md) に従いBotを作成・招待してください。
+
+```sh
+npm ci
+```
+
+`.env.example` を `.env` にコピーし、`DISCORD_TOKEN`、`GUILD_ID`、`MAP_CHANNEL_ID` を設定します。`MAP_MESSAGE_ID` は初回のみ空欄です。
+
+```sh
+npm run setup
+```
+
+出力された `MAP_MESSAGE_ID=...` を `.env` に保存します。このコマンドはDiscordにメッセージを1件投稿します。繰り返すと新規投稿になるため、最初の1回だけ実行してください。IDを設定済みの場合は誤投稿を防ぐため拒否します。
+
+```sh
+npm run dev
+```
+
+| コマンド | 用途 |
+| --- | --- |
+| `npm run dev` | `.env` を読み込み、変更時に再起動 |
+| `npm run setup` | Bot自身の初回マップメッセージを作成 |
+| `npm run typecheck` | 型チェック |
+| `npm test` | マップ生成・更新・debounceのテスト |
+| `npm run build` | `dist/` にコンパイル |
+| `npm start` | 注入済みの環境変数で本番実行 |
+
+ローカルでビルド成果物を `.env` とともに実行する場合:
+
+```sh
+npm run build
+node --env-file=.env dist/index.js
+```
+
+本番の `npm start` は `.env` を読みません。NorthflankのRuntime Variablesを利用します。
+
+## ドキュメント
+
+- [Discord Developer Portal・権限・セットアップ](docs/setup.md)
+- [Northflankへのデプロイと運用](docs/northflank.md)
+- [セキュリティと公開範囲](docs/security.md)
+
+## 制約と残課題
+
+- 単一メッセージ本文の上限は2,000文字です。超過時は編集を中止し、直前の内容を維持してエラーを記録します。分割投稿・添付・Embedへの拡張は未実装です。
+- 設定したメッセージが削除されても勝手に再投稿しません。`npm run setup` で新規作成し、IDを再設定してください。手動投稿やWebhook・別Botの投稿は編集できません。
+- 非公開化の反映にはdebounce・API通信の遅延があり、障害や文字数超過中は古いマップが残ります。緊急時は管理者がマップメッセージを削除してください。
+- インスタンスは1台で運用します。複数インスタンス間の排他制御はありません。
+- 実Discordへの接続とNorthflankへのデプロイは、運用者のトークン・ID設定後に [動作確認](docs/setup.md#動作確認) を行ってください。
+
+## 構成
+
+`src/map.ts` が表示生成、`src/scheduler.ts` がdebounceと再試行、`src/updateMap.ts` がDiscordとの同期、`src/index.ts` がイベント受付を担当します。`src/setup.ts` は初回投稿用です。GitHub Actionsで型チェック・テスト・ビルドを実行します。
