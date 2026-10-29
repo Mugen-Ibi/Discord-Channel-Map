@@ -9,3 +9,11 @@
 - エラーは操作の文脈とDiscordの数値コードだけを記録し、トークン・HTTPリクエスト本体・チャンネル構造をログへ出しません。
 - `package-lock.json` を管理し、導入・CI・デプロイは `npm ci` を使用します。依存更新時は型チェック・テスト・ビルドとDiscord実環境での確認を行ってください。
 - Webhook、Slash Command、受信用HTTPエンドポイント、メッセージ本文収集、DB保存は実装していません。
+
+
+## 2026-10-29の依存更新
+
+- TypeScriptを5.9.3から安定版7.0.2へ更新し、既存のNodeNext設定で型チェック・ビルド・テストを検証しました。Node.js 24の契約を維持し、`@types/node`も24系を使用します。
+- lockfile内のUndiciを6.29.1へ更新し、既知の高深刻度アドバイザリを解消しました。`npm audit --audit-level=moderate`をCIへ追加します。監査0件は、実装全体に脆弱性がないことを保証しません。
+- GitHub公式checkout v7.0.1とsetup-node v7.1.0をコミットSHAで固定し、不要なcheckout認証情報の保存を無効化します。実CIの成功はリモート反映後に確認してください。
+- テストは`node --import tsx --test`を使い、不要なtsx CLI用IPCを作成しません。Botの起動・初回投稿コマンドと設定は変更していません。

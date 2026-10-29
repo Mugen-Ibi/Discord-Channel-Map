@@ -55,3 +55,33 @@ test('retries failures after 30 seconds; shutdown cancels future work', async t 
   t.mock.timers.tick(60000);
   assert.equal(calls, 2);
 });
+
+
+test('preserves the retry delay when events arrive during a failed update and backoff', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  let rejectFirst!: (error: Error) => void;
+  let calls = 0;
+  const scheduler = createScheduler(async () => {
+    calls++;
+    if (calls === 1) await new Promise<void>((_resolve, reject) => { rejectFirst = reject; });
+  }, () => {});
+  t.after(() => scheduler.stop());
+  scheduler.request(true);
+  t.mock.timers.tick(0);
+  scheduler.request();
+  t.mock.timers.tick(3000);
+  rejectFirst(new Error('offline'));
+  await flush();
+  t.mock.timers.tick(0);
+  assert.equal(calls, 1, 'a queued event must not cause an immediate failure retry');
+  scheduler.request(true);
+  t.mock.timers.tick(29999);
+  assert.equal(calls, 1, 'reconnect requests must not bypass a pending retry backoff');
+  t.mock.timers.tick(1);
+  await flush();
+  assert.equal(calls, 2);
+  scheduler.request();
+  t.mock.timers.tick(3000);
+  await flush();
+  assert.equal(calls, 3, 'a successful retry restores the normal debounce');
+});

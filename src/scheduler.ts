@@ -5,10 +5,11 @@ export function createScheduler(update: () => Promise<void>, onError: (error: un
   let pending = false;
   let stopped = false;
   let due = 0;
+  let retryNotBefore = 0;
 
   function arm() {
     if (timer) clearTimeout(timer);
-    if (!stopped && !running && pending) timer = setTimeout(() => void run(), Math.max(0, due - Date.now()));
+    if (!stopped && !running && pending) timer = setTimeout(() => void run(), Math.max(0, due - Date.now(), retryNotBefore - Date.now()));
   }
   async function run() {
     timer = undefined;
@@ -17,9 +18,12 @@ export function createScheduler(update: () => Promise<void>, onError: (error: un
     running = true;
     try {
       await update();
+      retryNotBefore = 0;
     } catch (error) {
       onError(error);
-      if (!pending) { pending = true; due = Date.now() + retryMs; }
+      // Events queued during a failure must not shorten the promised retry backoff.
+      retryNotBefore = Date.now() + retryMs;
+      if (!pending) { pending = true; due = retryNotBefore; }
     } finally {
       running = false;
       arm();

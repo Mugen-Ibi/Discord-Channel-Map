@@ -45,7 +45,7 @@ MVPを実装しました。TypeScript + discord.js、単一Guild向け、DB・�
 - Text 📝 / Voice 🔊 / Forum 💬 / Announcement 📢 を識別します。Stage 🎙️ / Media 🖼️ も表示します。
 - カテゴリなしのチャンネルを先頭に表示します。空カテゴリも表示します。スレッド・Forum内の投稿は対象外です。
 - ChannelCreate / ChannelDelete / ChannelUpdateの最後のイベントから3秒後、`MAP_MESSAGE_ID` の同一メッセージを編集します。他Guildのイベントは無視します。
-- 起動・Gateway再接続・Guild復帰時に再同期します。更新は直列化し、失敗後は30秒後に再試行します。内容が同じなら編集を省略します。
+- 起動・Gateway再接続・Guild復帰時に再同期します。更新は直列化し、失敗後は30秒以上待って再試行します。待機中の変更・再接続イベントでも、この待機時間を短縮しません。内容が同じなら編集を省略します。
 - 公開案内用として、**Botと @everyone の両方が View Channel を持つチャンネル・カテゴリだけ**を掲載します。ロール限定チャンネルはBotから見えても掲載しません。親カテゴリが非公開で子だけ公開の場合、子は「カテゴリなし」に表示します。ロールの変更・削除でも再評価します。
 
 ## クイックスタート
@@ -74,6 +74,7 @@ npm run dev
 | `npm run setup` | Bot自身の初回マップメッセージを作成 |
 | `npm run typecheck` | 型チェック |
 | `npm test` | マップ生成・更新・debounceのテスト |
+| `npm run check` | 型チェック・テスト・ビルドをまとめて実行 |
 | `npm run build` | `dist/` にコンパイル |
 | `npm start` | 注入済みの環境変数で本番実行 |
 
